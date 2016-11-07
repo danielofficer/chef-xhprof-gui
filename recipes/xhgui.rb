@@ -17,55 +17,47 @@
 # limitations under the License.
 #
 
-directory "/opt/xhprof" do
-  owner "root"
-  group "root"
-  mode "0755"
-  action :create
+apt_package ['mongodb', 'php5-dev', 'php5-mcrypt', 'libcurl4-openssl-dev', 'pkg-config', 'libssl-dev', 'libsslcommon2-dev', 'libpcre3-dev'] do
+    action :install
+end
+
+php_pear "mongodb" do
+    action :install
+end
+
+template "#{node['php']['ext_conf_dir']}/mcrypt.ini" do
+  mode "0644"
+  action :create_if_missing
+end
+
+execute "enable-mcrypt" do
+    command "php5enmod mcrypt"
 end
 
 git node['xhprof']['install_path'] do
-  repository "git://github.com/inviqa/xhprof.git"
+  repository "git://github.com/perftools/xhgui.git"
   revision "master"
   action :sync
 end
 
-mysql_connection_info = {
-  :host => node['xhprof']['db']['host'],
-  :port => node['xhprof']['db']['port'],
-  :username => "root",
-  :password => node['mysql']['server_root_password']
-}
-
-mysql_database node['xhprof']['db']['database'] do
-  connection (mysql_connection_info)
-  action :create
+web_app node['xhprof']['hostname'] do
+  server_name node['xhprof']['hostname']
+  apache node['apache']
+  server_aliases [node['fqdn']]
+  docroot "#{node['xhprof']['install_path']}/webroot"
 end
 
-mysql_database_user node['xhprof']['db']['username'] do
-  connection mysql_connection_info
-  password node['xhprof']['db']['password']
-  database_name node['xhprof']['db']['database']
-  host node['xhprof']['db']['host']
-  privileges [:select,:update,:insert]
-  action :grant
+# Install Graphviz for use with xhprof-gui graphs.
+package "graphviz"
+
+# Run the install script
+execute "install-xhgui" do
+  cwd "#{node['xhprof']['install_path']}"
+  command "/usr/bin/env php install.php"
 end
 
-template "#{node['xhprof']['install_path']}/create_pdo.sql" do
-  source "create_pdo.sql.erb"
-  owner "root"
-  group "root"
-  mode "0600"
-end
-
-execute "mysql-install-xhprof-database" do
-    command "/usr/bin/mysql #{node['xhprof']['db']['host'].empty? || node['xhprof']['db']['host'] == "localhost" ? '' : '-h ' + node['xhprof']['db']['host']} -u root #{node['mysql']['server_root_password'].empty? ? '' : '-p' }#{node['mysql']['server_root_password']} #{node['xhprof']['db']['database']} < #{node['xhprof']['install_path']}/create_pdo.sql"
-    action :run
-end
-
-
-template "#{node['xhprof']['install_path']}/xhprof_lib/config.php" do
-  source "config.php.erb"
+template "#{node['xhprof']['install_path']}/config/config.default.php" do
+  source "config.default.php.erb"
   owner "root"
   group "root"
   mode "0644"
@@ -74,15 +66,5 @@ template "#{node['xhprof']['install_path']}/xhprof_lib/config.php" do
     :database => node['xhprof']['db']
   )
 end
-
-web_app node['xhprof']['hostname'] do
-  server_name node['xhprof']['hostname']
-  apache node['apache']
-  server_aliases [node['fqdn']]
-  docroot "#{node['xhprof']['install_path']}/xhprof_html"
-end
-
-# Install Graphviz for use with xhprof-gui graphs.
-package "graphviz"
 
 log " You can now access XHGui at #{node['xhprof']['hostname']} #{node['fqdn']}"

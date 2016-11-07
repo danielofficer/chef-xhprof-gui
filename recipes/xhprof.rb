@@ -22,7 +22,10 @@ php_pear "xhprof" do
     action :install
 end
 
+
 template "#{node['php']['ext_conf_dir']}/xhprof.ini" do
   mode "0644"
   action :create_if_missing
 end
+
+

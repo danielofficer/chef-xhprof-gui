@@ -8,8 +8,6 @@ version          "0.4.0"
 
 depends "php"
 depends "git"
-depends "mysql"
-depends "database", "> 1.3.0"
 depends "apache2"
 
 %w{ ubuntu debian centos fedora }.each do |os|

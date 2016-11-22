@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 
-apt_package ['mongodb', 'php5-dev', 'php5-mcrypt', 'libcurl4-openssl-dev', 'pkg-config', 'libssl-dev', 'libsslcommon2-dev', 'libpcre3-dev'] do
+apt_package ['mongodb'] do
     action :install
 end
 
@@ -25,14 +25,6 @@ php_pear "mongodb" do
     action :install
 end
 
-template "#{node['php']['ext_conf_dir']}/mcrypt.ini" do
-  mode "0644"
-  action :create_if_missing
-end
-
-execute "enable-mcrypt" do
-    command "php5enmod mcrypt"
-end
 
 git node['xhprof']['install_path'] do
   repository "git://github.com/perftools/xhgui.git"

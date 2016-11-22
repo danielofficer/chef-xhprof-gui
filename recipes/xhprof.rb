@@ -17,15 +17,32 @@
 # limitations under the License.
 #
 
+
+apt_package ['php5-dev', 'php5-mcrypt', 'libcurl4-openssl-dev', 'pkg-config', 'libssl-dev', 'libsslcommon2-dev', 'libpcre3-dev'] do
+    action :install
+end
+
+template "#{node['php']['ext_conf_dir']}/mcrypt.ini" do
+  mode "0644"
+  action :create_if_missing
+end
+
+execute "enable-mcrypt" do
+    command "php5enmod mcrypt"
+end
+
 php_pear "xhprof" do
     preferred_state "beta"
     action :install
 end
 
-
 template "#{node['php']['ext_conf_dir']}/xhprof.ini" do
   mode "0644"
   action :create_if_missing
+end
+
+execute "enable-xhprof" do
+    command "php5enmod xhprof"
 end
 
 
